@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
@@ -17,7 +17,7 @@ namespace WindowsFormsApp1
         public const string Font = "Segoe UI";
         public const string Icons = "Segoe MDL2 Assets";
 
-        public static Font F(float size, FontStyle style = FontStyle.Regular) => new Font(Font, size, style);
+        public static Font F(float size, FontStyle style = FontStyle.Regular) => Gfx.Typeface(Font, size, style);
     }
 
     /// <summary>Rounded text input with a placeholder; border turns blue on focus.</summary>
@@ -71,7 +71,7 @@ namespace WindowsFormsApp1
                 g.DrawPath(pen, path);
             }
             if (glyph != null)
-                TextRenderer.DrawText(g, glyph, new Font(Ui.Icons, 11f), new Rectangle(0, 0, 42, Height), Ui.Muted,
+                TextRenderer.DrawText(g, glyph, Gfx.Typeface(Ui.Icons, 11f), new Rectangle(0, 0, 42, Height), Ui.Muted,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
 
@@ -113,7 +113,7 @@ namespace WindowsFormsApp1
             int x = (Width - size.Width) / 2;
             if (Glyph != null)
             {
-                TextRenderer.DrawText(g, Glyph, new Font(Ui.Icons, 10f), new Point(x, (Height - 14) / 2), ForeColor, TextFormatFlags.NoPadding);
+                TextRenderer.DrawText(g, Glyph, Gfx.Typeface(Ui.Icons, 10f), new Point(x, (Height - 14) / 2), ForeColor, TextFormatFlags.NoPadding);
                 x += 26;
                 text = Text;
             }
@@ -224,7 +224,7 @@ namespace WindowsFormsApp1
             var logo = new Rectangle(48, 64, 64, 64);
             using (var path = Gfx.Round(logo, 16))
                 g.FillPath(Brushes.White, path);
-            TextRenderer.DrawText(g, "\U0001F381", new Font("Segoe UI Emoji", 24f), logo, Ui.Red,
+            TextRenderer.DrawText(g, "\U0001F381", Gfx.Typeface("Segoe UI Emoji", 24f), logo, Ui.Red,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
             Gfx.Text(g, "Tie the knot", Ui.F(28f, FontStyle.Bold), Color.White, 44, 160);
@@ -233,7 +233,7 @@ namespace WindowsFormsApp1
             int y = Height - 150;
             foreach (var line in new[] { "Track guests and bond money", "Riel and Dollar totals at a glance", "Daily records and reports" })
             {
-                TextRenderer.DrawText(g, "", new Font(Ui.Icons, 10f), new Point(50, y + 3), Color.White, TextFormatFlags.NoPadding);
+                TextRenderer.DrawText(g, "", Gfx.Typeface(Ui.Icons, 10f), new Point(50, y + 3), Color.White, TextFormatFlags.NoPadding);
                 Gfx.Text(g, line, Ui.F(10.5f), Color.White, 76, y);
                 y += 32;
             }

@@ -26,10 +26,10 @@ namespace WindowsFormsApp1
         readonly HeroPanel hero = new HeroPanel();
         readonly StatCard[] stats =
         {
-            new StatCard("Total Gifts", "$12,480", "(50,720,000 KHR)", "\U0001F381", "Segoe UI Emoji", "↗", Color.FromArgb(252, 238, 238), Maroon),
-            new StatCard("Guests", "186", null, "", Icons, "", Color.FromArgb(253, 244, 228), Color.FromArgb(150, 104, 30)),
-            new StatCard("Upcoming Events", "2", null, "", Icons, "", Color.FromArgb(236, 245, 239), Color.FromArgb(46, 110, 80)),
-            new StatCard("Recent Events", "3", null, "", Icons, "", Color.FromArgb(252, 238, 240), Maroon),
+            new StatCard("Total Gifts", "", "", "\U0001F381", "Segoe UI Emoji", "↗", Color.FromArgb(252, 238, 238), Maroon),
+            new StatCard("Guests", "", null, "", Icons, "", Color.FromArgb(253, 244, 228), Color.FromArgb(150, 104, 30)),
+            new StatCard("Upcoming Events", "", null, "", Icons, "", Color.FromArgb(236, 245, 239), Color.FromArgb(46, 110, 80)),
+            new StatCard("Recent Events", "", null, "", Icons, "", Color.FromArgb(252, 238, 240), Maroon),
         };
         readonly RoundedPanel eventsCard = new RoundedPanel { BackColor = Color.White };
         readonly DataGridView grid = new DataGridView();
@@ -53,6 +53,7 @@ namespace WindowsFormsApp1
             content.Controls.Add(hero);
             foreach (var s in stats) content.Controls.Add(s);
             BuildEventsCard();
+            UpdateStats();
             content.Controls.Add(eventsCard);
             content.Controls.Add(footer);
             content.Resize += (s, e) => LayoutContent();
@@ -76,9 +77,25 @@ namespace WindowsFormsApp1
             fab.BringToFront();
             Resize += (s, e) => PlaceFab();
             Lang.Changed += ApplyLanguage;
+            Shown += (s, e) => new SnowOverlay(this).AttachToggle(nav.SnowButton, Maroon, Color.FromArgb(246, 232, 235)); // hides while this form is hidden
 
             LayoutContent();
             PlaceFab();
+        }
+
+        /// <summary>Summary cards are derived from the Recent Events table so they can never disagree with it.</summary>
+        void UpdateStats()
+        {
+            var rows = grid.Rows.Cast<DataGridViewRow>().ToList();
+            decimal Num(DataGridViewRow r, string col) =>
+                decimal.Parse(Convert.ToString(r.Cells[col].Value, CultureInfo.InvariantCulture).TrimStart('$'), NumberStyles.Number, CultureInfo.InvariantCulture);
+            int Count(string status) => rows.Count(r => (string)r.Cells["Status"].Value == status);
+            var inv = CultureInfo.InvariantCulture;
+
+            stats[0].Set("$" + rows.Sum(r => Num(r, "Usd")).ToString("N0", inv), "(" + rows.Sum(r => Num(r, "Khr")).ToString("N0", inv) + " KHR)");
+            stats[1].Set(rows.Sum(r => Num(r, "Guests")).ToString("N0", inv), null);
+            stats[2].Set(Count("Upcoming").ToString(inv), null);
+            stats[3].Set(Count("Completed").ToString(inv), null);
         }
 
         /// <summary>Re-texts the real controls; painted controls pick the language up on repaint.</summary>
@@ -88,7 +105,8 @@ namespace WindowsFormsApp1
             eventsTitle.Text = Lang.T("Recent Events");
             viewAll.Font = Lang.F(10f);
             viewAll.Text = Lang.T("View all events  →");
-            grid.ColumnHeadersDefaultCellStyle.Font = Lang.F(9.5f);
+            grid.ColumnHeadersDefaultCellStyle.Font = Lang.Body(9f, true);
+            grid.DefaultCellStyle.Font = Lang.Body(9.75f);
             foreach (DataGridViewColumn c in grid.Columns) c.HeaderText = Lang.T((string)c.Tag);
             calendarTitle.Font = Lang.F(24f, FontStyle.Bold);
             calendarTitle.Text = Lang.T("Events Calendar");
@@ -110,22 +128,22 @@ namespace WindowsFormsApp1
 
             var cal = new MonthCalendar
             {
-                CalendarDimensions = new Size(3, 1),
+                CalendarDimensions = new Size(4, 1), // Aug–Nov covers every sample event
                 MaxSelectionCount = 1,
-                Font = new Font(Serif, 11f),
+                Font = Gfx.Typeface(Serif, 11f),
                 BoldedDates = events.Select(x => x.Date).ToArray(),
                 TitleBackColor = Maroon,
                 TitleForeColor = Color.White,
                 TrailingForeColor = Color.FromArgb(200, 190, 180),
             };
-            var details = new Label { Font = new Font(Serif, 12f), ForeColor = Ink, AutoSize = true, Margin = new Padding(0, 20, 0, 0) };
+            var details = new Label { Font = Gfx.Typeface(Serif, 12f), ForeColor = Ink, AutoSize = true, Margin = new Padding(0, 20, 0, 0) };
             var shownDay = DateTime.Today;
 
             void ShowDay(DateTime day)
             {
                 shownDay = day;
                 var hits = events.Where(x => x.Date == day.Date).ToList();
-                details.Font = Lang.F(12f);
+                details.Font = Lang.Body(11f);
                 details.Text = hits.Count == 0
                     ? $"{day:MMM d, yyyy}  —  {Lang.T("No events on this day.")}"
                     : string.Join("\n", hits.Select(x => $"{x.Date:MMM d, yyyy}  —  {x.Name}  ·  {x.Venue}  ({Lang.T(x.Status)})"));
@@ -147,7 +165,7 @@ namespace WindowsFormsApp1
             calendarPage.Controls.Add(calendarTitle = new Label
             {
                 Text = "Events Calendar",
-                Font = new Font(Serif, 24f, FontStyle.Bold),
+                Font = Gfx.Typeface(Serif, 24f, FontStyle.Bold),
                 ForeColor = Maroon,
                 AutoSize = true,
                 Location = new Point(64, 36),
@@ -208,7 +226,7 @@ namespace WindowsFormsApp1
             var title = eventsTitle = new Label
             {
                 Text = "Recent Events",
-                Font = new Font(Serif, 15f),
+                Font = Gfx.Typeface(Serif, 15f),
                 ForeColor = Ink,
                 AutoSize = true,
                 Location = new Point(70, 16),
@@ -217,7 +235,7 @@ namespace WindowsFormsApp1
             var icon = new Label
             {
                 Text = "",
-                Font = new Font(Icons, 16f),
+                Font = Gfx.Typeface(Icons, 16f),
                 ForeColor = Maroon,
                 AutoSize = true,
                 Location = new Point(24, 18),
@@ -226,7 +244,7 @@ namespace WindowsFormsApp1
             viewAll = new LinkLabel
             {
                 Text = "View all events  →",
-                Font = new Font(Serif, 10f),
+                Font = Gfx.Typeface(Serif, 10f),
                 LinkColor = Maroon,
                 ActiveLinkColor = Gold,
                 LinkBehavior = LinkBehavior.HoverUnderline,
@@ -268,14 +286,14 @@ namespace WindowsFormsApp1
             var header = grid.ColumnHeadersDefaultCellStyle;
             header.BackColor = Color.FromArgb(250, 247, 243);
             header.SelectionBackColor = header.BackColor;
-            header.ForeColor = Ink;
-            header.Font = new Font(Serif, 9.5f);
+            header.ForeColor = Muted;
+            header.Font = Lang.Body(9f, true);
             header.Padding = new Padding(28, 0, 0, 0);
 
             var cell = grid.DefaultCellStyle;
-            cell.Font = new Font(Serif, 10f);
+            cell.Font = Lang.Body(9.75f);
             cell.ForeColor = Ink;
-            cell.SelectionBackColor = Color.FromArgb(252, 245, 240);
+            cell.SelectionBackColor = Color.White; // display-only table: selection must never show (it left the status pill on a white island)
             cell.SelectionForeColor = Ink;
             cell.Padding = new Padding(28, 0, 0, 0);
 
@@ -295,12 +313,12 @@ namespace WindowsFormsApp1
             Col("Khr", "Total Gifts (KHR)", 95);
             Col("Status", "Status", 100);
             Col("Actions", "Actions", 50);
-            grid.Columns["Actions"].DefaultCellStyle.Font = new Font("Segoe UI", 13f, FontStyle.Bold);
+            grid.Columns["Actions"].DefaultCellStyle.Font = Gfx.Typeface("Segoe UI", 13f, FontStyle.Bold);
 
-            grid.Rows.Add(1, "Sophea & Dara - Wedding Ceremony", "Apr 20, 2025", "Sofitel Phnom Penh", 186, "$12,480", "50,720,000", "Completed", "⋮");
-            grid.Rows.Add(2, "Engagement Ceremony", "Mar 15, 2025", "Himawari Hotel", 124, "$8,250", "33,550,000", "Completed", "⋮");
-            grid.Rows.Add(3, "Traditional Blessing (Water Ceremony)", "Mar 14, 2025", "Family Home", 98, "$4,360", "17,860,000", "Completed", "⋮");
-            grid.Rows.Add(4, "Reception Dinner", "May 10, 2025", "Rosewood Phnom Penh", 0, "$0", "0", "Upcoming", "⋮");
+            grid.Rows.Add(1, "Sophea & Dara - Wedding Ceremony", "Oct 4, 2026", "Sofitel Phnom Penh", 186, "$12,480", "50,720,000", "Completed", "⋮");
+            grid.Rows.Add(2, "Engagement Ceremony", "Aug 15, 2026", "Himawari Hotel", 124, "$8,250", "33,550,000", "Completed", "⋮");
+            grid.Rows.Add(3, "Traditional Blessing (Water Ceremony)", "Aug 14, 2026", "Family Home", 98, "$4,360", "17,860,000", "Completed", "⋮");
+            grid.Rows.Add(4, "Reception Dinner", "Nov 21, 2026", "Rosewood Phnom Penh", 0, "$0", "0", "Upcoming", "⋮");
 
             grid.CellPainting += PaintStatusPill;
             grid.SelectionChanged += (s, e) => grid.ClearSelection(); // ponytail: display-only table, no selection
@@ -325,7 +343,7 @@ namespace WindowsFormsApp1
                 gr.FillPath(b, path);
             using (var dot = new SolidBrush(fg))
                 gr.FillEllipse(dot, r.X + 10, r.Y + r.Height / 2 - 4, 8, 8);
-            TextRenderer.DrawText(gr, Lang.T(status), Lang.F(9f), new Rectangle(r.X + 22, r.Y, r.Width - 24, r.Height), fg,
+            TextRenderer.DrawText(gr, Lang.T(status), Lang.Body(8.5f, true), new Rectangle(r.X + 22, r.Y, r.Width - 24, r.Height), fg,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
             e.Handled = true;
         }
@@ -352,9 +370,14 @@ namespace WindowsFormsApp1
 
         public static string T(string en) => Khmer && Kh.TryGetValue(en, out var kh) ? kh : en;
 
+        /// <summary>Data/UI text: Segoe UI has lining figures, so numbers and dates sit level (Georgia's dip).</summary>
+        public static Font Body(float size, bool semibold = false) =>
+            Khmer ? Gfx.Typeface(Form1.Khmer, size * 0.95f, semibold ? FontStyle.Bold : FontStyle.Regular)
+                  : Gfx.Typeface(semibold ? "Segoe UI Semibold" : "Segoe UI", size);
+
         // Georgia has no Khmer glyphs; Khmer UI runs taller, so it is drawn slightly smaller.
         public static Font F(float size, FontStyle style = FontStyle.Regular) =>
-            Khmer ? new Font(Form1.Khmer, size * 0.92f, style) : new Font(Form1.Serif, size, style);
+            Khmer ? Gfx.Typeface(Form1.Khmer, size * 0.92f, style) : Gfx.Typeface(Form1.Serif, size, style);
 
         static readonly System.Collections.Generic.Dictionary<string, string> Kh = new System.Collections.Generic.Dictionary<string, string>
         {
@@ -369,7 +392,6 @@ namespace WindowsFormsApp1
             ["Create New Event"] = "បង្កើតព្រឹត្តិការណ៍ថ្មី",
             ["Learn more  ›"] = "ស្វែងយល់បន្ថែម  ›",
             ["Total Gifts"] = "អំណោយសរុប",
-            ["(50,720,000 KHR)"] = "(50,720,000 រៀល)",
             ["Upcoming Events"] = "ព្រឹត្តិការណ៍ខាងមុខ",
             ["Recent Events"] = "ព្រឹត្តិការណ៍ថ្មីៗ",
             ["View all events  →"] = "មើលព្រឹត្តិការណ៍ទាំងអស់  →",
@@ -391,6 +413,18 @@ namespace WindowsFormsApp1
 
     static class Gfx
     {
+        static readonly System.Collections.Generic.Dictionary<(string, float, FontStyle), Font> fonts =
+            new System.Collections.Generic.Dictionary<(string, float, FontStyle), Font>();
+
+        /// <summary>Shared, cached font. Never dispose the result.</summary>
+        // ponytail: fonts live for the app's lifetime; the set is small and fixed, so no eviction
+        public static Font Typeface(string family, float size, FontStyle style = FontStyle.Regular)
+        {
+            var key = (family, size, style);
+            if (!fonts.TryGetValue(key, out var font)) fonts[key] = font = new Font(family, size, style);
+            return font;
+        }
+
         public static GraphicsPath Round(Rectangle r, int radius)
         {
             int d = Math.Max(1, radius * 2);
@@ -433,8 +467,10 @@ namespace WindowsFormsApp1
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);
+            var old = Region;
             using (var path = Gfx.Round(new Rectangle(0, 0, Width, Height), Radius))
                 Region = new Region(path); // clips child grid to the rounded corners
+            old?.Dispose();
         }
     }
 
@@ -446,6 +482,7 @@ namespace WindowsFormsApp1
         public event EventHandler<string> Navigate;
         int active, hover = -1;
         Rectangle lang;
+        public readonly FlatButton SnowButton = new FlatButton { Text = "\u2744", Size = new Size(36, 36), Font = Gfx.Typeface("Segoe UI Symbol", 12f) };
 
         public NavBar()
         {
@@ -456,7 +493,12 @@ namespace WindowsFormsApp1
 
             var music = new MusicPlayer("song.mp3", "SONG") { BackColor = BackColor };
             Controls.Add(music);
-            Resize += (s, e) => music.Location = new Point(Width - 330, (Height - music.Height) / 2);
+            Controls.Add(SnowButton);
+            Resize += (s, e) =>
+            {
+                music.Location = new Point(Width - 330, (Height - music.Height) / 2);
+                SnowButton.Location = new Point(Width - 406, (Height - SnowButton.Height) / 2); // between KH|EN and the divider
+            };
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -465,14 +507,14 @@ namespace WindowsFormsApp1
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
             // Brand
-            Gfx.Text(g, "❦", new Font(Form1.Serif, 26f), Form1.Gold, 72, 12);
-            Gfx.Text(g, "Kat Chamnong Dai", new Font(Form1.Serif, 17f, FontStyle.Bold), Form1.Maroon, 120, 8);
-            Gfx.Text(g, "កត់ចំណងដៃ", new Font(Form1.Khmer, 11f), Form1.Maroon, 122, 38);
+            Gfx.Text(g, "❦", Gfx.Typeface(Form1.Serif, 26f), Form1.Gold, 72, 12);
+            Gfx.Text(g, "Kat Chamnong Dai", Gfx.Typeface(Form1.Serif, 17f, FontStyle.Bold), Form1.Maroon, 120, 8);
+            Gfx.Text(g, "កត់ចំណងដៃ", Gfx.Typeface(Form1.Khmer, 11f), Form1.Maroon, 122, 38);
 
             // Menu
             int x = 470;
             var font = Lang.F(11f);
-            var iconFont = new Font(Form1.Icons, 12f);
+            var iconFont = Gfx.Typeface(Form1.Icons, 12f);
             for (int i = 0; i < Items.Length; i++)
             {
                 string label = Lang.T(Items[i]);
@@ -488,7 +530,7 @@ namespace WindowsFormsApp1
             }
 
             // Language toggle: the active half sits on a white chip.
-            lang = new Rectangle(Width - 455, 16, 84, 36);
+            lang = new Rectangle(Width - 515, 16, 84, 36);
             using (var path = Gfx.Round(lang, 10))
             using (var b = new SolidBrush(Color.FromArgb(240, 234, 226)))
                 g.FillPath(b, path);
@@ -497,8 +539,8 @@ namespace WindowsFormsApp1
             using (var path = Gfx.Round(Lang.Khmer ? kh : en, 8))
                 g.FillPath(Brushes.White, path);
             var center = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter;
-            TextRenderer.DrawText(g, "KH", new Font(Form1.Serif, 10f, Lang.Khmer ? FontStyle.Bold : FontStyle.Regular), kh, Lang.Khmer ? Form1.Maroon : Form1.Muted, center);
-            TextRenderer.DrawText(g, "EN", new Font(Form1.Serif, 10f, Lang.Khmer ? FontStyle.Regular : FontStyle.Bold), en, Lang.Khmer ? Form1.Muted : Form1.Maroon, center);
+            TextRenderer.DrawText(g, "KH", Gfx.Typeface(Form1.Serif, 10f, Lang.Khmer ? FontStyle.Bold : FontStyle.Regular), kh, Lang.Khmer ? Form1.Maroon : Form1.Muted, center);
+            TextRenderer.DrawText(g, "EN", Gfx.Typeface(Form1.Serif, 10f, Lang.Khmer ? FontStyle.Regular : FontStyle.Bold), en, Lang.Khmer ? Form1.Muted : Form1.Maroon, center);
 
             using (var pen = new Pen(Form1.Line))
             {
@@ -547,7 +589,7 @@ namespace WindowsFormsApp1
             learn = new LinkLabel
             {
                 Text = "Learn more  ›",
-                Font = new Font(Form1.Serif, 11f),
+                Font = Gfx.Typeface(Form1.Serif, 11f),
                 LinkColor = Form1.Maroon,
                 ActiveLinkColor = Form1.Gold,
                 LinkBehavior = LinkBehavior.HoverUnderline,
@@ -588,9 +630,9 @@ namespace WindowsFormsApp1
                         g.FillRectangle(b, 0, 0, dest.X, h);
             }
 
-            Gfx.Text(g, Lang.T("A  MODERN  WAY  TO  PRESERVE  TRADITION"), Lang.Khmer ? Lang.F(10f) : new Font("Segoe UI", 9f), Form1.Muted, 82, Lang.Khmer ? 30 : 38);
-            Gfx.Text(g, "Kat Chamnong Dai", new Font(Form1.Serif, 40f, FontStyle.Bold), Form1.Maroon, 76, 58);
-            Gfx.Text(g, "កត់ចំណងដៃ", new Font(Form1.Khmer, 34f), Form1.Gold, 80, 124);
+            Gfx.Text(g, Lang.T("A  MODERN  WAY  TO  PRESERVE  TRADITION"), Lang.Khmer ? Lang.F(10f) : Gfx.Typeface("Segoe UI", 9f), Form1.Muted, 82, Lang.Khmer ? 30 : 38);
+            Gfx.Text(g, "Kat Chamnong Dai", Gfx.Typeface(Form1.Serif, 40f, FontStyle.Bold), Form1.Maroon, 76, 58);
+            Gfx.Text(g, "កត់ចំណងដៃ", Gfx.Typeface(Form1.Khmer, 34f), Form1.Gold, 80, 124);
             Gfx.Text(g, Lang.T("Record every gift. Remember every connection."), Lang.F(16f), Form1.Ink, 82, 202);
             Gfx.Text(g, Lang.T("Keep track of your wedding gifts, guests, and blessings\nin one beautiful place — for today and for generations tomorrow."),
                 Lang.F(12f), Form1.Muted, 82, 240);
@@ -605,8 +647,16 @@ namespace WindowsFormsApp1
 
     class StatCard : Control
     {
-        readonly string title, value, sub, icon, iconFont, action;
+        readonly string title, icon, iconFont, action;
         readonly Color tint, accent;
+        string value, sub;
+
+        public void Set(string value, string sub)
+        {
+            this.value = value;
+            this.sub = sub;
+            Invalidate();
+        }
 
         public StatCard(string title, string value, string sub, string icon, string iconFont, string action, Color tint, Color accent)
         {
@@ -636,21 +686,21 @@ namespace WindowsFormsApp1
             var disc = new Rectangle(22, Height / 2 - 34, 68, 68);
             using (var b = new SolidBrush(Color.FromArgb(40, accent)))
                 g.FillEllipse(b, disc);
-            TextRenderer.DrawText(g, icon, new Font(iconFont, 20f), disc, accent,
+            TextRenderer.DrawText(g, icon, Gfx.Typeface(iconFont, 20f), disc, accent,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
             int tx = 114;
             int ty = sub == null ? 30 : 20;
             Gfx.Text(g, Lang.T(title), Lang.F(11f), Form1.Ink, tx, ty - (Lang.Khmer ? 4 : 0));
-            Gfx.Text(g, value, new Font(Form1.Serif, 21f, FontStyle.Bold), title == "Total Gifts" ? Form1.Maroon : Form1.Ink, tx, ty + 20);
+            Gfx.Text(g, value, Gfx.Typeface("Segoe UI Semibold", 19f), title == "Total Gifts" ? Form1.Maroon : Form1.Ink, tx, ty + 20);
             if (sub != null)
-                Gfx.Text(g, Lang.T(sub), Lang.F(10f), Form1.Muted, tx, ty + 60);
+                Gfx.Text(g, Lang.Khmer ? sub.Replace("KHR", "រៀល") : sub, Lang.Body(9.5f), Form1.Muted, tx, ty + 60);
 
             // Small action disc on the right
             var small = new Rectangle(Width - 66, Height / 2 - 22, 44, 44);
             using (var b = new SolidBrush(Color.FromArgb(28, accent)))
                 g.FillEllipse(b, small);
-            TextRenderer.DrawText(g, action, new Font(action == "↗" ? "Segoe UI" : Form1.Icons, action == "↗" ? 14f : 11f), small, accent,
+            TextRenderer.DrawText(g, action, Gfx.Typeface(action == "↗" ? "Segoe UI" : Form1.Icons, action == "↗" ? 14f : 11f), small, accent,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
     }
@@ -664,7 +714,7 @@ namespace WindowsFormsApp1
             FlatStyle = FlatStyle.Flat;
             FlatAppearance.BorderSize = 0;
             Cursor = Cursors.Hand;
-            Font = new Font(Form1.Serif, 13f);
+            Font = Gfx.Typeface(Form1.Serif, 13f);
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
         }
 
@@ -683,10 +733,10 @@ namespace WindowsFormsApp1
 
             var plus = new Rectangle(30, Height / 2 - 15, 30, 30);
             g.FillEllipse(Brushes.White, plus);
-            TextRenderer.DrawText(g, "+", new Font("Segoe UI", 15f, FontStyle.Bold), plus, Form1.Maroon,
+            TextRenderer.DrawText(g, "+", Gfx.Typeface("Segoe UI", 15f, FontStyle.Bold), plus, Form1.Maroon,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             TextRenderer.DrawText(g, Text, Font, new Point(76, Height / 2 - 12), Color.White, TextFormatFlags.NoPadding);
-            TextRenderer.DrawText(g, "›", new Font("Segoe UI", 16f), new Point(Width - 44, Height / 2 - 17), Color.White, TextFormatFlags.NoPadding);
+            TextRenderer.DrawText(g, "›", Gfx.Typeface("Segoe UI", 16f), new Point(Width - 44, Height / 2 - 17), Color.White, TextFormatFlags.NoPadding);
         }
     }
 
@@ -698,7 +748,7 @@ namespace WindowsFormsApp1
             FlatAppearance.BorderSize = 0;
             BackColor = Form1.Maroon;
             ForeColor = Color.White;
-            Font = new Font("Segoe UI", 22f);
+            Font = Gfx.Typeface("Segoe UI", 22f);
             Text = "+";
             Cursor = Cursors.Hand;
             Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
@@ -707,11 +757,13 @@ namespace WindowsFormsApp1
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);
+            var old = Region;
             using (var p = new GraphicsPath())
             {
                 p.AddEllipse(0, 0, Width, Height);
                 Region = new Region(p);
             }
+            old?.Dispose();
         }
     }
 
@@ -727,16 +779,16 @@ namespace WindowsFormsApp1
         {
             var g = e.Graphics;
             g.Clear(BackColor);
-            Gfx.Text(g, "❀", new Font(Form1.Serif, 22f), Form1.Gold, 68, 22);
+            Gfx.Text(g, "❀", Gfx.Typeface(Form1.Serif, 22f), Form1.Gold, 68, 22);
             Gfx.Text(g, Lang.T("More than gifts, stronger relationships"), Lang.F(11f, Lang.Khmer ? FontStyle.Regular : FontStyle.Italic), Form1.Muted, 128, 32);
 
             string tag = Lang.T("PEOPLE  •  BLESSINGS  •  A BRIGHTER TOMORROW");
-            var tagFont = Lang.Khmer ? Lang.F(9.5f) : new Font("Segoe UI", 8.5f);
+            var tagFont = Lang.Khmer ? Lang.F(9.5f) : Gfx.Typeface("Segoe UI", 8.5f);
             int tagW = TextRenderer.MeasureText(tag, tagFont).Width;
             Gfx.Text(g, tag, tagFont, Form1.Muted, Width - 68 - tagW, 34);
             using (var pen = new Pen(Form1.Line))
                 g.DrawLine(pen, Width - 96 - tagW, 22, Width - 96 - tagW, 58);
-            var kh = new Font(Form1.Khmer, 13f);
+            var kh = Gfx.Typeface(Form1.Khmer, 13f);
             string khText = "កត់ចំណងដៃ";
             int khW = TextRenderer.MeasureText(khText, kh).Width;
             Gfx.Text(g, khText, kh, Form1.Maroon, Width - 120 - tagW - khW, 26);

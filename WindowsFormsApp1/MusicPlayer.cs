@@ -40,7 +40,7 @@ namespace WindowsFormsApp1
 
         public Color Accent = Form1.Maroon;   // play button + progress knob
         public Color Progress = Form1.Gold;   // filled part of the bar
-        public string FontName = Form1.Serif;
+        public string FontName = "Segoe UI";
         Rectangle restartBtn, playBtn, muteBtn, bar;
 
         public MusicPlayer(string fileName, string title)
@@ -146,19 +146,19 @@ namespace WindowsFormsApp1
             muteBtn = new Rectangle(Width - 28, 12, 26, 24);
             bar = new Rectangle(84, 31, Width - 84 - 36, 4);
 
-            TextRenderer.DrawText(g, "", new Font(Form1.Icons, 10f), restartBtn, dim, center);
+            TextRenderer.DrawText(g, "", Gfx.Typeface(Form1.Icons, 10f), restartBtn, dim, center);
 
             using (var b = new SolidBrush(ready ? Accent : Form1.Line))
                 g.FillEllipse(b, playBtn);
             // Nudge the play triangle right so it looks optically centred.
             var glyphBox = playing ? playBtn : new Rectangle(playBtn.X + 2, playBtn.Y, playBtn.Width, playBtn.Height);
-            TextRenderer.DrawText(g, playing ? "" : "", new Font(Form1.Icons, 12f), glyphBox, Color.White, center);
+            TextRenderer.DrawText(g, playing ? "" : "", Gfx.Typeface(Form1.Icons, 12f), glyphBox, Color.White, center);
 
-            Gfx.Text(g, ready ? title : problem, new Font(FontName, 10f), ready ? Form1.Ink : Form1.Muted, bar.X, 7);
+            Gfx.Text(g, ready ? title : problem, Gfx.Typeface(FontName, 10f), ready ? Form1.Ink : Form1.Muted, bar.X, 7);
             if (ready)
             {
                 string time = Clock(pos) + " / " + Clock(len);
-                var small = new Font(FontName, 8.5f);
+                var small = Gfx.Typeface(FontName, 8.5f);
                 int tw = TextRenderer.MeasureText(time, small).Width;
                 Gfx.Text(g, time, small, Form1.Muted, bar.Right - tw + 6, 9);
             }
@@ -176,7 +176,7 @@ namespace WindowsFormsApp1
                     g.FillEllipse(b, bar.X + filled - 5, bar.Y - 3, 10, 10);
             }
 
-            TextRenderer.DrawText(g, muted ? "" : "", new Font(Form1.Icons, 11f), muteBtn, dim, center);
+            TextRenderer.DrawText(g, muted ? "" : "", Gfx.Typeface(Form1.Icons, 11f), muteBtn, dim, center);
         }
 
         Rectangle SeekArea => new Rectangle(bar.X, bar.Y - 8, bar.Width, bar.Height + 16);

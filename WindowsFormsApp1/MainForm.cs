@@ -59,7 +59,12 @@ namespace WindowsFormsApp1
         readonly FlatButton addGuest = new FlatButton { Text = "Add guest", Glyph = "", Size = new Size(140, 46) };
         readonly RoundedPanel tableCard = new RoundedPanel { BackColor = Color.White };
         readonly DataGridView grid = new DataGridView();
-        readonly MusicPlayer music = new MusicPlayer("song.mp3", "SONG") { Accent = Ui.Blue, Progress = Color.FromArgb(120, 170, 245), FontName = Ui.Font };
+        readonly MusicPlayer music = new MusicPlayer("song.mp3", "SONG") { Accent = Ui.Blue, Progress = Color.FromArgb(120, 170, 245), FontName = Ui.Font, BackColor = Ui.Page };
+        // Header sits above both pages, so the title and music player stay put when switching to Settings.
+        readonly FlatButton snowButton = new FlatButton { Text = "\u2744", Size = new Size(40, 40), Font = Gfx.Typeface("Segoe UI Symbol", 13f) };
+        readonly Panel header = new Panel { Dock = DockStyle.Top, Height = 84, BackColor = Ui.Page };
+        readonly Label pageTitle = new Label { Text = "Guest book", Font = Ui.F(19f, FontStyle.Bold), ForeColor = Ui.Ink, AutoSize = true, Location = new Point(23, 18) };
+        readonly Label pageDate = new Label { Text = DateTime.Today.ToString("dddd, d MMMM yyyy"), Font = Ui.F(9.5f), ForeColor = Ui.Muted, AutoSize = true, Location = new Point(26, 54) };
 
         public MainForm(string userName)
         {
@@ -73,13 +78,14 @@ namespace WindowsFormsApp1
             Shown += (s, e) =>
             {
                 Anim.Run(250, p => Opacity = p);
+                new SnowOverlay(this).AttachToggle(snowButton, Ui.Blue, Color.FromArgb(226, 236, 253)); // closes itself with this form
                 var tiles = new[] { totalGuests, totalRiel, totalDollar, today };
                 for (int i = 0; i < tiles.Length; i++) tiles[i].SlideIn(120 + i * 90);
             };
 
             BuildGrid();
             tableCard.Controls.Add(grid);
-            content.Controls.AddRange(new Control[] { music, totalGuests, totalRiel, totalDollar, today, search, currency, addGuest, tableCard });
+            content.Controls.AddRange(new Control[] { totalGuests, totalRiel, totalDollar, today, search, currency, addGuest, tableCard });
             content.Resize += (s, e) => LayoutContent();
 
             search.Box.TextChanged += (s, e) => RefreshView();
@@ -91,6 +97,7 @@ namespace WindowsFormsApp1
                 bool settings = item == "Settings";
                 if (item == "Tie the knot" || settings)
                 {
+                    pageTitle.Text = settings ? "Settings" : "Guest book";
                     settingsPage.Visible = settings;
                     content.Visible = !settings;
                     return;
@@ -99,8 +106,17 @@ namespace WindowsFormsApp1
             };
             BuildSettingsPage();
 
+            header.Controls.AddRange(new Control[] { pageTitle, pageDate, snowButton, music });
+            header.Resize += (s, e) =>
+            {
+                music.Location = new Point(header.Width - music.Width - 26, 22);
+                snowButton.Location = new Point(music.Left - snowButton.Width - 18, music.Top + (music.Height - snowButton.Height) / 2);
+            };
+
+
             Controls.Add(content);
             Controls.Add(settingsPage);
+            Controls.Add(header);
             Controls.Add(sidebar);
             LayoutContent();
             RefreshView();
@@ -108,9 +124,8 @@ namespace WindowsFormsApp1
 
         void LayoutContent()
         {
-            const int pad = 26, gap = 20, top = 64; // top row holds the music player
+            const int pad = 26, gap = 20, top = 4;
             int w = content.ClientSize.Width - pad * 2;
-            music.Location = new Point(pad + w - music.Width, 12);
             int tileW = (w - gap * 3) / 4;
             var tiles = new[] { totalGuests, totalRiel, totalDollar, today };
             for (int i = 0; i < tiles.Length; i++)
@@ -185,6 +200,19 @@ namespace WindowsFormsApp1
                 guests.Remove(g);
                 RefreshView();
             };
+            // Empty state: a blank white box reads as broken, so say what to do next.
+            grid.Paint += (s, e) =>
+            {
+                if (grid.Rows.Count > 0) return;
+                bool filtered = search.Text.Trim().Length > 0 || currency.Selected != null;
+                int mid = grid.ColumnHeadersHeight + (grid.Height - grid.ColumnHeadersHeight) / 2;
+                var center = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter;
+                TextRenderer.DrawText(e.Graphics, "\uE716", Gfx.Typeface(Ui.Icons, 26f), new Rectangle(0, mid - 86, grid.Width, 44), Color.FromArgb(190, 200, 215), center);
+                TextRenderer.DrawText(e.Graphics, filtered ? "No guests match your search" : "No guests yet", Ui.F(12.5f, FontStyle.Bold),
+                    new Rectangle(0, mid - 36, grid.Width, 28), Ui.Ink, center);
+                TextRenderer.DrawText(e.Graphics, filtered ? "Try another name, place or currency." : "Click \u201CAdd guest\u201D to record the first gift, or import an Excel file from Settings.",
+                    Ui.F(10f), new Rectangle(0, mid - 6, grid.Width, 24), Ui.Muted, center);
+            };
             grid.CellMouseEnter += (s, e) =>
                 grid.Cursor = e.RowIndex >= 0 && e.ColumnIndex >= 0 && grid.Columns[e.ColumnIndex].Name == "Activity" ? Cursors.Hand : Cursors.Default;
         }
@@ -193,9 +221,7 @@ namespace WindowsFormsApp1
 
         void BuildSettingsPage()
         {
-            settingsPage.Controls.Add(new Label { Text = "Settings", Font = Ui.F(20f, FontStyle.Bold), ForeColor = Ui.Ink, AutoSize = true, Location = new Point(24, 24) });
-
-            var card = new RoundedPanel { BackColor = Color.White, Location = new Point(26, 84), Size = new Size(760, 250) };
+            var card = new RoundedPanel { BackColor = Color.White, Location = new Point(26, 4), Size = new Size(760, 250) };
             card.Controls.Add(new Label { Text = "Data", Font = Ui.F(13f, FontStyle.Bold), ForeColor = Ui.Ink, AutoSize = true, Location = new Point(28, 22) });
 
             void Row(int y, string title, string hint, string button, string glyph, Action click)
@@ -364,13 +390,13 @@ namespace WindowsFormsApp1
             using (var path = Gfx.Round(logo, 12))
             using (var b = new LinearGradientBrush(logo, Color.FromArgb(250, 90, 100), Ui.Red, 45f))
                 g.FillPath(b, path);
-            TextRenderer.DrawText(g, "\U0001F381", new Font("Segoe UI Emoji", 15f), logo, Color.White,
+            TextRenderer.DrawText(g, "\U0001F381", Gfx.Typeface("Segoe UI Emoji", 15f), logo, Color.White,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
             toggle = collapsed ? new Rectangle(Width - 22, 32, 20, 24) : new Rectangle(Width - 46, 32, 24, 24);
             if (!collapsed)
                 Gfx.Text(g, "Tie the knot", Ui.F(14.5f, FontStyle.Bold), Ui.Red, 70, 30);
-            TextRenderer.DrawText(g, collapsed ? "" : "", new Font(Ui.Icons, 9f), toggle, Ui.Blue,
+            TextRenderer.DrawText(g, collapsed ? "" : "", Gfx.Typeface(Ui.Icons, 9f), toggle, Ui.Blue,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
             using (var pen = new Pen(Color.FromArgb(190, 210, 240), 2f))
@@ -384,7 +410,7 @@ namespace WindowsFormsApp1
                     using (var b = new SolidBrush(Color.FromArgb(244, 247, 251)))
                         g.FillPath(b, path);
                 Color c = i == active ? Ui.Blue : (i == Items.Length - 1 ? Ui.Red : Color.FromArgb(75, 85, 99));
-                TextRenderer.DrawText(g, Glyphs[i], new Font(Ui.Icons, 12f), new Rectangle(r.X + 10, r.Y, 36, r.Height), c,
+                TextRenderer.DrawText(g, Glyphs[i], Gfx.Typeface(Ui.Icons, 12f), new Rectangle(r.X + 10, r.Y, 36, r.Height), c,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
                 if (!collapsed)
                     TextRenderer.DrawText(g, Items[i], Ui.F(11f, FontStyle.Bold), new Rectangle(r.X + 52, r.Y, r.Width - 52, r.Height), c,
@@ -491,7 +517,7 @@ namespace WindowsFormsApp1
             using (var path = Gfx.Round(tile, 10))
             using (var b = new SolidBrush(Color.FromArgb(30, accent)))
                 g.FillPath(b, path);
-            TextRenderer.DrawText(g, icon, new Font(iconFont, iconFont == Ui.Icons ? 13f : 15f, FontStyle.Bold), tile, accent,
+            TextRenderer.DrawText(g, icon, Gfx.Typeface(iconFont, iconFont == Ui.Icons ? 13f : 15f, FontStyle.Bold), tile, accent,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
             Gfx.Text(g, title, Ui.F(9.5f), Color.FromArgb(55, 65, 81), 82, 20 + dy);
@@ -618,7 +644,7 @@ namespace WindowsFormsApp1
         void Save()
         {
             if (name.Text.Trim().Length == 0) { error.Text = "Guest name is required."; name.Box.Focus(); return; }
-            if (!decimal.TryParse(amount.Text, out var money) || money < 0) { error.Text = "Bond money must be a positive number."; amount.Box.Focus(); return; }
+            if (!decimal.TryParse(amount.Text, out var money) || money < 0) { error.Text = "Bond money must be a number, zero or more."; amount.Box.Focus(); return; }
 
             Guest = new Guest
             {

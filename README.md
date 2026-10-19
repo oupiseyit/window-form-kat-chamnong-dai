@@ -7,7 +7,7 @@ A Windows Forms desktop app for recording wedding gifts (*chamnong dai*) and gue
 ## Screens
 
 ### Dashboard
-The landing page has an event overview, gift and guest totals, recent events, a monthly events calendar, a background music player and an English / Khmer language switch.
+The landing page has an event overview, gift and guest totals, recent events, a four-month events calendar, a background music player and an English / Khmer language switch.
 
 ### Sign in
 
