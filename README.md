@@ -7,7 +7,7 @@ A Windows Forms desktop app for recording wedding gifts (*chamnong dai*) and gue
 ## Screens
 
 ### Dashboard
-The landing page has an event overview, gift and guest totals, recent events, a four-month events calendar, a background music player and an English / Khmer language switch.
+The landing page has an event overview, gift and guest totals, recent events, a four-month events calendar, a background music player, an English / Khmer language switch and falling snow you can turn on or off with the ❄ button.
 
 ### Sign in
 
@@ -17,13 +17,14 @@ Click **Create New Event** or the **+** button on the dashboard to sign in.
 
 > Demo account: `admin` / `1234`
 
-### Tie the knot: guest book
+### Tie the knot: Guest book
 
 ![Tie the knot](WindowsFormsApp1/Screenshort/Tie-The-Knog.png)
 
 After signing in, you record each guest's bond money in Riel or Dollars.
 
 - Totals for guests, Riel, Dollars and today's records, with count-up animation
+- Page header with today's date, the music player and a ❄ snow on/off button
 - Search by name, place or notes, and filter by currency
 - Add and delete guests
 - **Settings → Export to Excel / Import from Excel** (`.xlsx`)
@@ -48,6 +49,7 @@ WindowsFormsApp1/
 ├── LoginForm.cs       Sign-in screen and shared input/button controls
 ├── MainForm.cs        Guest book, settings page, add-guest dialog, animations
 ├── MusicPlayer.cs     Play/pause, seek and mute controller (Windows MCI)
+├── SnowOverlay.cs     Click-through falling-snow window with on/off toggle
 ├── Xlsx.cs            Minimal .xlsx reader/writer (zip + XML, no dependencies)
 ├── Images/hero.png    Dashboard banner
 ├── Song/song.mp3      Background music
